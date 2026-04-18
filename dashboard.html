@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Library — Traffic Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0a0a0f;--surface:#13131a;--card:#1a1a25;--border:#2a2a3a;
+      --accent:#8b5cf6;--accent2:#a78bfa;
+      --red:#ef4444;--orange:#f59e0b;--green:#22c55e;--blue:#3b82f6;
+      --text:#e2e8f0;--muted:#94a3b8;--gold:#fbbf24;
+    }
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+    /* ── Header ── */
+    .header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .header-left h1{font-size:22px;font-weight:700;letter-spacing:.5px}
+    .header-left h1 span{color:var(--accent)}
+    .header-left .sub{color:var(--muted);font-size:13px;margin-top:2px}
+    .header-right{display:flex;align-items:center;gap:16px}
+    .header-link{color:var(--accent2);font-size:12px;text-decoration:none;border:1px solid var(--border);padding:6px 14px;border-radius:6px;transition:border-color .2s}
+    .header-link:hover{border-color:var(--accent)}
+
+    /* ── Main ── */
+    .main{max-width:1400px;margin:0 auto;padding:28px 32px;display:flex;flex-direction:column;gap:28px}
+
+    /* ── Section title ── */
+    .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .section-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+    /* ── Stat cards ── */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 18px;position:relative;overflow:hidden}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .stat-card.purple::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+    .stat-card.teal::before{background:linear-gradient(90deg,var(--green),#10b981)}
+    .stat-card.gold::before{background:linear-gradient(90deg,var(--gold),var(--orange))}
+    .stat-card.blue::before{background:linear-gradient(90deg,var(--blue),#06b6d4)}
+    .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;font-weight:600}
+    .stat-value{font-size:30px;font-weight:800;color:var(--text);line-height:1}
+    .stat-sub{font-size:11px;color:var(--muted);margin-top:6px}
+
+    /* ── Cards / panels ── */
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
+    .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .panel canvas{max-height:200px}
+
+    /* ── Tables ── */
+    .table-wrap{overflow-x:auto;margin-top:4px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:0 10px 10px 0;border-bottom:1px solid var(--border)}
+    td{padding:11px 10px 11px 0;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,.015)}
+
+    .bar-wrap{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+    .mini-bar{height:5px;border-radius:3px;background:var(--accent);opacity:.65;flex-shrink:0}
+    .mini-bar.green{background:var(--green)}
+    .path-mono{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--accent2);word-break:break-all}
+    .num-bold{font-weight:700}
+    .num-muted{color:var(--muted);font-size:11px}
+
+    /* ── Revenue-style big card ── */
+    .summary-banner{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:14px;padding:28px 32px}
+    .summary-banner .big-num{font-size:52px;font-weight:800;color:#fff;line-height:1}
+    .summary-banner .big-label{font-size:13px;color:#a5b4fc;margin-top:4px}
+    .summary-banner .meta-row{display:flex;gap:32px;margin-top:20px;flex-wrap:wrap}
+    .summary-meta{display:flex;flex-direction:column;gap:2px}
+    .summary-meta .val{font-size:22px;font-weight:700;color:#fff}
+    .summary-meta .lbl{font-size:11px;color:#a5b4fc;text-transform:uppercase;letter-spacing:.05em}
+
+    /* ── Loading / error ── */
+    .shell-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:80px 32px;color:var(--muted);font-size:14px}
+    .shell-spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .shell-error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:18px;color:var(--red);display:none;font-size:13px;line-height:1.6}
+
+    /* ── Footer ── */
+    footer{border-top:1px solid var(--border);padding:16px 32px;text-align:center;color:var(--muted);font-size:12px}
+    footer a{color:var(--muted)}
+
+    @media(max-width:700px){
+      .chart-grid{grid-template-columns:1fr}
+      .header{padding:16px}
+      .main{padding:16px}
+      .summary-banner .big-num{font-size:36px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Prompt Library <span>/</span> Traffic</h1>
+    <div class="sub" id="last-updated">Loading data…</div>
+  </div>
+  <div class="header-right">
+    <a class="header-link" href="https://github.com/shills81/Shills-helpful-prompts" target="_blank">↗ GitHub Repo</a>
+    <a class="header-link" href="https://github.com/shills81/Shills-helpful-prompts/tree/traffic-data" target="_blank">↗ Raw Data</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="shell-error" id="error-box"></div>
+  <div class="shell-loading" id="loading"><div class="shell-spinner"></div> Loading traffic data…</div>
+
+  <div id="dashboard" style="display:none">
+
+    <!-- Big summary banner -->
+    <div class="summary-banner">
+      <div class="big-num" id="banner-views">—</div>
+      <div class="big-label">Total views since tracking began</div>
+      <div class="meta-row">
+        <div class="summary-meta"><div class="val" id="banner-uniques">—</div><div class="lbl">Unique Visitors</div></div>
+        <div class="summary-meta"><div class="val" id="banner-clones">—</div><div class="lbl">Repo Clones</div></div>
+        <div class="summary-meta"><div class="val" id="banner-stars">—</div><div class="lbl">Stars</div></div>
+        <div class="summary-meta"><div class="val" id="banner-days">—</div><div class="lbl">Days Tracked</div></div>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <!-- Views + Clones over time -->
+    <div class="chart-grid">
+      <div class="panel">
+        <div class="section-title"><span class="dot"></span>Views over time</div>
+        <canvas id="chart-views"></canvas>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span class="dot" style="background:var(--green)"></span>Clones over time</div>
+        <canvas id="chart-clones"></canvas>
+      </div>
+    </div>
+
+    <!-- Most viewed prompts + Referrers -->
+    <div class="chart-grid">
+      <div class="panel">
+        <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Most Viewed Prompts</div>
+        <div class="table-wrap">
+          <table id="table-paths">
+            <thead><tr>
+              <th>Prompt</th>
+              <th style="text-align:right">Views</th>
+              <th style="text-align:right">Unique</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Top Referrers</div>
+        <div class="table-wrap">
+          <table id="table-refs">
+            <thead><tr>
+              <th>Source</th>
+              <th style="text-align:right">Views</th>
+              <th style="text-align:right">Unique</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stars / Forks growth -->
+    <div class="panel">
+      <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Stars &amp; Forks over time</div>
+      <canvas id="chart-stars" style="max-height:150px"></canvas>
+    </div>
+
+  </div><!-- /dashboard -->
+</div><!-- /main -->
+
+<footer>
+  Data via GitHub Traffic API · Updated daily by GitHub Actions ·
+  <a href="https://github.com/shills81/Shills-helpful-prompts" target="_blank">github.com/shills81/Shills-helpful-prompts</a>
+</footer>
+
+<script>
+const DATA_URL =
+  "https://raw.githubusercontent.com/shills81/Shills-helpful-prompts/traffic-data/data/traffic-log.json";
+
+const C = {
+  purple: "#8b5cf6", purple2: "#a78bfa",
+  green:  "#22c55e", green2:  "#10b981",
+  gold:   "#fbbf24", orange:  "#f59e0b",
+  blue:   "#3b82f6", blue2:   "#06b6d4",
+  muted:  "#94a3b8", border:  "#1e293b",
+};
+
+const CHART_OPT = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { labels: { color: C.muted, font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: C.muted, font: { size: 10 } }, grid: { color: C.border } },
+    y: { ticks: { color: C.muted, font: { size: 10 } }, grid: { color: C.border }, beginAtZero: true },
+  },
+};
+
+function fmt(n) { return (n ?? 0).toLocaleString(); }
+
+function lineChart(id, labels, datasets, opts = {}) {
+  new Chart(document.getElementById(id).getContext("2d"), {
+    type: "line",
+    data: { labels, datasets },
+    options: { ...CHART_OPT, ...opts, elements: { point: { radius: 2 }, line: { tension: 0.35 } } },
+  });
+}
+
+function pathLabel(p) {
+  return p.replace(/^\/prompts\//, "").replace(/\.md$/, "").replace(/^\//, "") || p;
+}
+
+async function render() {
+  try {
+    const resp = await fetch(DATA_URL + "?cb=" + Date.now());
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const log = await resp.json();
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+    // ── Daily data ──────────────────────────────────────────────────
+    const dates     = Object.keys(log.views || {}).sort();
+    const shortDates = dates.map(d => d.slice(5));
+    const views     = dates.map(d => (log.views[d]  || {}).count   ?? 0);
+    const uvs       = dates.map(d => (log.views[d]  || {}).uniques ?? 0);
+    const clones    = dates.map(d => (log.clones[d] || {}).count   ?? 0);
+    const ucl       = dates.map(d => (log.clones[d] || {}).uniques ?? 0);
+
+    const totalViews   = views.reduce((a, b) => a + b, 0);
+    const totalUniques = uvs.reduce((a, b) => a + b, 0);
+    const totalClones  = clones.reduce((a, b) => a + b, 0);
+
+    const snaps  = (log.repo_snapshots || []);
+    const latest = snaps[snaps.length - 1] || {};
+
+    // ── Banner ──────────────────────────────────────────────────────
+    document.getElementById("banner-views").textContent   = fmt(totalViews);
+    document.getElementById("banner-uniques").textContent = fmt(totalUniques);
+    document.getElementById("banner-clones").textContent  = fmt(totalClones);
+    document.getElementById("banner-stars").textContent   = fmt(latest.stars);
+    document.getElementById("banner-days").textContent    = dates.length;
+
+    if (dates.length) {
+      document.getElementById("last-updated").textContent =
+        "Last data: " + dates[dates.length - 1] + " · updated daily";
+    }
+
+    // ── Stat cards ──────────────────────────────────────────────────
+    const today7 = dates.slice(-7);
+    const views7  = today7.reduce((a, d) => a + ((log.views[d]  || {}).count   ?? 0), 0);
+    const clones7 = today7.reduce((a, d) => a + ((log.clones[d] || {}).count   ?? 0), 0);
+    const avgDay  = dates.length ? Math.round(totalViews / dates.length) : 0;
+
+    document.getElementById("stat-grid").innerHTML = [
+      statCard("Views (last 7 days)", views7,  "page views",       "purple"),
+      statCard("Clones (last 7 days)",clones7, "repo clones",      "teal"),
+      statCard("Avg views / day",     avgDay,  "all-time average", "gold"),
+      statCard("Stars",   latest.stars   ?? "—", "", "blue"),
+      statCard("Forks",   latest.forks   ?? "—", "", ""),
+      statCard("Watchers",latest.watchers ?? "—", "", ""),
+    ].join("");
+
+    function statCard(label, val, sub, cls) {
+      return `<div class="stat-card ${cls}">
+        <div class="stat-label">${label}</div>
+        <div class="stat-value">${fmt(val)}</div>
+        ${sub ? `<div class="stat-sub">${sub}</div>` : ""}
+      </div>`;
+    }
+
+    // ── Charts ──────────────────────────────────────────────────────
+    lineChart("chart-views", shortDates, [
+      { label: "Views",           data: views, borderColor: C.purple,  backgroundColor: "rgba(139,92,246,.1)", fill: true },
+      { label: "Unique visitors", data: uvs,   borderColor: C.purple2, backgroundColor: "transparent" },
+    ]);
+
+    lineChart("chart-clones", shortDates, [
+      { label: "Clones",         data: clones, borderColor: C.green,  backgroundColor: "rgba(34,197,94,.1)", fill: true },
+      { label: "Unique cloners", data: ucl,    borderColor: C.green2, backgroundColor: "transparent" },
+    ]);
+
+    // ── Most viewed prompts ─────────────────────────────────────────
+    const paths = (log.popular_paths || [])
+      .filter(p => p.path && p.path.includes("/prompts/"))
+      .sort((a, b) => b.count - a.count);
+
+    const maxPv = paths[0]?.count || 1;
+    const pathsTbody = document.querySelector("#table-paths tbody");
+    pathsTbody.innerHTML = paths.length === 0
+      ? `<tr><td colspan="3" style="color:var(--muted);padding-top:12px;font-size:12px">No prompt view data yet — run the Actions workflow to populate.</td></tr>`
+      : paths.slice(0, 10).map(p => `
+          <tr>
+            <td><span class="path-mono">${pathLabel(p.path)}</span></td>
+            <td style="text-align:right">
+              <div class="bar-wrap">
+                <div class="mini-bar" style="width:${Math.round(p.count/maxPv*60)}px"></div>
+                <span class="num-bold">${fmt(p.count)}</span>
+              </div>
+            </td>
+            <td style="text-align:right"><span class="num-muted">${fmt(p.uniques)}</span></td>
+          </tr>`).join("");
+
+    // ── Referrers ───────────────────────────────────────────────────
+    const refs = (log.referrers || []).sort((a, b) => b.count - a.count);
+    const maxRv = refs[0]?.count || 1;
+    const refsTbody = document.querySelector("#table-refs tbody");
+    refsTbody.innerHTML = refs.length === 0
+      ? `<tr><td colspan="3" style="color:var(--muted);padding-top:12px;font-size:12px">No referrer data yet.</td></tr>`
+      : refs.map(r => `
+          <tr>
+            <td>${r.referrer || "Direct / unknown"}</td>
+            <td style="text-align:right">
+              <div class="bar-wrap">
+                <div class="mini-bar green" style="width:${Math.round(r.count/maxRv*60)}px"></div>
+                <span class="num-bold">${fmt(r.count)}</span>
+              </div>
+            </td>
+            <td style="text-align:right"><span class="num-muted">${fmt(r.uniques)}</span></td>
+          </tr>`).join("");
+
+    // ── Stars/Forks chart ───────────────────────────────────────────
+    const snapDates = snaps.map(s => s.date.slice(5));
+    lineChart("chart-stars", snapDates, [
+      { label: "Stars", data: snaps.map(s => s.stars  ?? 0), borderColor: C.gold,   backgroundColor: "rgba(251,191,36,.1)", fill: true, pointRadius: 3 },
+      { label: "Forks", data: snaps.map(s => s.forks  ?? 0), borderColor: C.orange, backgroundColor: "transparent",         pointRadius: 3 },
+    ]);
+
+  } catch (err) {
+    document.getElementById("loading").style.display = "none";
+    const box = document.getElementById("error-box");
+    box.style.display = "block";
+    box.innerHTML = `<strong>Could not load traffic data.</strong><br>
+      If this is a fresh setup, trigger the <em>Fetch Traffic Stats</em> GitHub Action manually first.<br><br>
+      Error: ${err.message}`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>

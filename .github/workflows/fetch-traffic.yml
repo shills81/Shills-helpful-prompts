@@ -1,0 +1,47 @@
+name: Fetch Traffic Stats
+
+# Runs daily to log repo traffic (views, clones, referrers, popular paths).
+# Data is written to the traffic-data branch, never to main.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 6:00 AM UTC daily
+  workflow_dispatch:        # manual trigger from Actions tab
+
+permissions:
+  contents: write           # needed to push to traffic-data branch
+
+jobs:
+  traffic:
+    name: Log traffic stats
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add traffic-data worktree
+        run: |
+          git fetch origin traffic-data
+          git worktree add ../traffic-data origin/traffic-data
+
+      - name: Run merge script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/merge-traffic.py ../traffic-data/data/traffic-log.json
+
+      - name: Commit and push to traffic-data
+        run: |
+          cd ../traffic-data
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/traffic-log.json
+          if git diff --staged --quiet; then
+            echo "No new data — nothing to commit."
+          else
+            git commit -m "traffic: $(date -u +%Y-%m-%d)"
+            git push origin HEAD:traffic-data
+          fi
