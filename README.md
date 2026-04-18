@@ -2,6 +2,9 @@
 
 A curated collection of AI prompts, system prompts, and prompt patterns for working with Claude and other large language models.
 
+**Copyright (c) 2026 [shills81](https://github.com/shills81). All rights reserved.**
+All prompts in this repository are original works and the intellectual property of the repository owner. See [LICENSE](LICENSE) for permitted uses.
+
 ## What's here
 
 | Folder | Contents |
