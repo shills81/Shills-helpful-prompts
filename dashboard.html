@@ -1,348 +1,1135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prompt Library — Traffic Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --bg:#0a0a0f;--surface:#13131a;--card:#1a1a25;--border:#2a2a3a;
-      --accent:#8b5cf6;--accent2:#a78bfa;
-      --red:#ef4444;--orange:#f59e0b;--green:#22c55e;--blue:#3b82f6;
-      --text:#e2e8f0;--muted:#94a3b8;--gold:#fbbf24;
-    }
-    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Library Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* ── Header ── */
-    .header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-    .header-left h1{font-size:22px;font-weight:700;letter-spacing:.5px}
-    .header-left h1 span{color:var(--accent)}
-    .header-left .sub{color:var(--muted);font-size:13px;margin-top:2px}
-    .header-right{display:flex;align-items:center;gap:16px}
-    .header-link{color:var(--accent2);font-size:12px;text-decoration:none;border:1px solid var(--border);padding:6px 14px;border-radius:6px;transition:border-color .2s}
-    .header-link:hover{border-color:var(--accent)}
+  body {
+    background: #0f1117;
+    color: #e2e8f0;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+  }
 
-    /* ── Main ── */
-    .main{max-width:1400px;margin:0 auto;padding:28px 32px;display:flex;flex-direction:column;gap:28px}
+  header {
+    background: #161b27;
+    border-bottom: 1px solid #1e2a3a;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-    /* ── Section title ── */
-    .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-    .section-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: 0.02em;
+  }
 
-    /* ── Stat cards ── */
-    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
-    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 18px;position:relative;overflow:hidden}
-    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-    .stat-card.purple::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
-    .stat-card.teal::before{background:linear-gradient(90deg,var(--green),#10b981)}
-    .stat-card.gold::before{background:linear-gradient(90deg,var(--gold),var(--orange))}
-    .stat-card.blue::before{background:linear-gradient(90deg,var(--blue),#06b6d4)}
-    .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;font-weight:600}
-    .stat-value{font-size:30px;font-weight:800;color:var(--text);line-height:1}
-    .stat-sub{font-size:11px;color:var(--muted);margin-top:6px}
+  header span {
+    font-size: 12px;
+    color: #64748b;
+  }
 
-    /* ── Cards / panels ── */
-    .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
-    .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .panel canvas{max-height:200px}
+  #token-gate {
+    max-width: 480px;
+    margin: 120px auto;
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+  }
 
-    /* ── Tables ── */
-    .table-wrap{overflow-x:auto;margin-top:4px}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{text-align:left;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:0 10px 10px 0;border-bottom:1px solid var(--border)}
-    td{padding:11px 10px 11px 0;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
-    tr:last-child td{border-bottom:none}
-    tr:hover td{background:rgba(255,255,255,.015)}
+  #token-gate h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
 
-    .bar-wrap{display:flex;align-items:center;gap:8px;justify-content:flex-end}
-    .mini-bar{height:5px;border-radius:3px;background:var(--accent);opacity:.65;flex-shrink:0}
-    .mini-bar.green{background:var(--green)}
-    .path-mono{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--accent2);word-break:break-all}
-    .num-bold{font-weight:700}
-    .num-muted{color:var(--muted);font-size:11px}
+  #token-gate p {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
 
-    /* ── Revenue-style big card ── */
-    .summary-banner{background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:14px;padding:28px 32px}
-    .summary-banner .big-num{font-size:52px;font-weight:800;color:#fff;line-height:1}
-    .summary-banner .big-label{font-size:13px;color:#a5b4fc;margin-top:4px}
-    .summary-banner .meta-row{display:flex;gap:32px;margin-top:20px;flex-wrap:wrap}
-    .summary-meta{display:flex;flex-direction:column;gap:2px}
-    .summary-meta .val{font-size:22px;font-weight:700;color:#fff}
-    .summary-meta .lbl{font-size:11px;color:#a5b4fc;text-transform:uppercase;letter-spacing:.05em}
+  #token-gate input {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #1e2a3a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
 
-    /* ── Loading / error ── */
-    .shell-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:80px 32px;color:var(--muted);font-size:14px}
-    .shell-spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .shell-error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:18px;color:var(--red);display:none;font-size:13px;line-height:1.6}
+  #token-gate input:focus { border-color: #3b82f6; }
 
-    /* ── Footer ── */
-    footer{border-top:1px solid var(--border);padding:16px 32px;text-align:center;color:var(--muted);font-size:12px}
-    footer a{color:var(--muted)}
+  button {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
 
-    @media(max-width:700px){
-      .chart-grid{grid-template-columns:1fr}
-      .header{padding:16px}
-      .main{padding:16px}
-      .summary-banner .big-num{font-size:36px}
-    }
-  </style>
+  button:hover { background: #2563eb; }
+
+  button.secondary {
+    background: transparent;
+    border: 1px solid #1e2a3a;
+    color: #94a3b8;
+    margin-left: 10px;
+  }
+
+  button.secondary:hover { border-color: #3b82f6; color: #e2e8f0; }
+
+  #dashboard { display: none; padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 14px;
+    margin-top: 32px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .stat-card {
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .stat-card .label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .stat-card .value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1;
+  }
+
+  .stat-card .sub {
+    font-size: 11px;
+    color: #475569;
+    margin-top: 6px;
+  }
+
+  .stat-card .value.blue { color: #3b82f6; }
+  .stat-card .value.green { color: #22c55e; }
+  .stat-card .value.yellow { color: #f59e0b; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+  .four-col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  @media (max-width: 1100px) { .four-col { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px)  { .four-col { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .panel h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 16px;
+  }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid #1e2a3a;
+    font-size: 13px;
+  }
+
+  .list-row:last-child { border-bottom: none; }
+
+  .list-row .name {
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 75%;
+  }
+
+  .list-row .name a {
+    color: #3b82f6;
+    text-decoration: none;
+  }
+
+  .list-row .name a:hover { text-decoration: underline; }
+
+  .list-row .count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    margin-left: 12px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: #1e3a5f;
+    color: #60a5fa;
+    margin-left: 8px;
+  }
+
+  .badge-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .badge-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #0f1117;
+    border: 1px solid #1e2a3a;
+    border-radius: 99px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .badge-pill .icon { font-size: 14px; }
+
+  .leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0f1117;
+    border: 1px solid #1e2a3a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color 0.15s;
+  }
+
+  .lb-row:hover { border-color: #3b82f6; }
+
+  .lb-rank {
+    font-size: 11px;
+    font-weight: 700;
+    color: #334155;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .lb-rank.gold   { color: #f59e0b; }
+  .lb-rank.silver { color: #94a3b8; }
+  .lb-rank.bronze { color: #b45309; }
+
+  .lb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #1e2a3a;
+    flex-shrink: 0;
+  }
+
+  .lb-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .lb-name {
+    font-size: 13px;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lb-name a { color: #60a5fa; text-decoration: none; }
+  .lb-name a:hover { text-decoration: underline; }
+
+  .lb-badges {
+    display: flex;
+    gap: 5px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+  }
+
+  .lb-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .lb-badge.pro      { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; }
+  .lb-badge.builder  { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
+  .lb-badge.curious  { background: #3b2800; color: #fbbf24; border: 1px solid #d97706; }
+
+  .lb-points {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    flex-shrink: 0;
+  }
+
+  .lb-points span { color: #94a3b8; }
+
+  .traffic-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .traffic-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .traffic-stat .big {
+    font-size: 32px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1;
+  }
+
+  .traffic-stat .uniq {
+    font-size: 12px;
+    color: #475569;
+  }
+
+  .trend {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .trend.up { color: #22c55e; }
+  .trend.down { color: #f87171; }
+  .trend.flat { color: #64748b; }
+
+  .sparkline-wrap {
+    width: 100%;
+    height: 48px;
+  }
+
+  .sparkline-wrap svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  #error-msg {
+    background: #2d1515;
+    border: 1px solid #7f1d1d;
+    color: #fca5a5;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin: 20px 0;
+    display: none;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #1e2a3a;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-state {
+    color: #475569;
+    font-size: 13px;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .refresh-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #1e2a3a;
+    color: #64748b;
+  }
+
+  .refresh-btn:hover { border-color: #3b82f6; color: #e2e8f0; }
+
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+
+  .repo-link {
+    font-size: 12px;
+    color: #3b82f6;
+    text-decoration: none;
+  }
+
+  .repo-link:hover { text-decoration: underline; }
+
+  .last-updated {
+    font-size: 11px;
+    color: #334155;
+  }
+
+  /* SHOW CARD */
+  .show-card {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    background: #0d1f38;
+    border: 1px solid #2563eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .show-card { grid-template-columns: 1fr; }
+  }
+
+  .show-image-wrap {
+    position: relative;
+    min-height: 240px;
+    overflow: hidden;
+    background: #0a0a1a;
+  }
+
+  .show-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .show-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent 55%, #0d1f38 100%);
+  }
+
+  .show-content {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .show-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.2;
+  }
+
+  .show-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.7;
+  }
+
+  .show-desc a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .show-desc a:hover { text-decoration: underline; }
+
+  /* HERO */
+  .hero-card {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .hero-card { grid-template-columns: 1fr; }
+  }
+
+  .hero-image-wrap {
+    position: relative;
+    min-height: 260px;
+    background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #0f1117 100%);
+    overflow: hidden;
+  }
+
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.92;
+  }
+
+  .hero-image-fallback {
+    background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #0f1117 100%);
+  }
+
+  .hero-image-fallback .hero-img { display: none; }
+
+  .hero-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent 60%, #161b27 100%);
+  }
+
+  .hero-source {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    font-size: 10px;
+    color: #94a3b8;
+    background: rgba(0,0,0,0.55);
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-decoration: none;
+    backdrop-filter: blur(4px);
+  }
+
+  .hero-source:hover { color: #e2e8f0; }
+
+  .hero-content {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .hero-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #3b82f6;
+  }
+
+  .hero-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.3;
+  }
+
+  .hero-pulls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .hero-pull {
+    font-size: 13px;
+    color: #94a3b8;
+    padding-left: 12px;
+    border-left: 2px solid #3b82f6;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .hero-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: #1e2a3a;
+    color: #64748b;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+  }
+
+  .hero-tag-link:hover {
+    background: #1e3a5f;
+    color: #60a5fa;
+  }
+
+  .hero-tag-promo {
+    background: #2d1f00;
+    color: #f59e0b;
+    border: 1px solid #92400e;
+  }
+
+  .hero-inline-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+
+  .hero-inline-links a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .hero-inline-links a:hover { text-decoration: underline; }
+
+  .hero-inline-links span { color: #334155; }
+
+  .hero-inline-code {
+    color: #f59e0b;
+    font-weight: 600;
+    cursor: default;
+  }
+
+  .hero-cta {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #3b82f6;
+    text-decoration: none;
+    margin-top: 4px;
+  }
+
+  .hero-cta:hover { color: #60a5fa; text-decoration: underline; }
+
+  .hero-host {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  .hero-host-label { color: #475569; }
+
+  .hero-host-link {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .hero-host-link:hover { text-decoration: underline; }
+
+  .hero-cta-secondary {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #22c55e;
+    text-decoration: none;
+  }
+
+  .hero-cta-secondary:hover { color: #4ade80; text-decoration: underline; }
+
+  /* STORY STATS */
+  .story-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 700px) {
+    .story-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .story-stat {
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: center;
+  }
+
+  .story-stat-val {
+    font-size: 30px;
+    font-weight: 700;
+    color: #3b82f6;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .story-stat-label {
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.4;
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div class="header">
-  <div class="header-left">
-    <h1>Prompt Library <span>/</span> Traffic</h1>
-    <div class="sub" id="last-updated">Loading data…</div>
+<header>
+  <h1>Shills / Prompt Library Dashboard</h1>
+  <div class="header-actions">
+    <span class="last-updated" id="last-updated"></span>
+    <button class="refresh-btn" onclick="loadAll()" style="display:none" id="refresh-btn">Refresh</button>
+    <button class="secondary" onclick="clearToken()" style="display:none" id="logout-btn">Change Token</button>
   </div>
-  <div class="header-right">
-    <a class="header-link" href="https://github.com/shills81/Shills-helpful-prompts" target="_blank">↗ GitHub Repo</a>
-    <a class="header-link" href="https://github.com/shills81/Shills-helpful-prompts/tree/traffic-data" target="_blank">↗ Raw Data</a>
+</header>
+
+<div id="token-gate">
+  <h2>Connect GitHub</h2>
+  <p>Enter a GitHub Personal Access Token with <strong>repo</strong> scope to access traffic data. Your token is stored locally in this browser only and never sent anywhere except GitHub's API.</p>
+  <input type="password" id="token-input" placeholder="ghp_..." />
+  <br>
+  <button onclick="saveToken()">Connect</button>
+</div>
+
+<div id="dashboard">
+  <div id="error-msg"></div>
+
+  <!-- SHOW CARD -->
+  <div class="show-card">
+    <div class="show-image-wrap">
+      <img src="AI-talk.jpg" alt="Tuesday's AI Talk Spaces" class="show-img"
+           onerror="this.parentElement.classList.add('hero-image-fallback')">
+      <div class="show-image-overlay"></div>
+    </div>
+    <div class="show-content">
+      <div class="hero-eyebrow">Every Tuesday on X Spaces</div>
+      <h2 class="show-title">Tuesday's AI Talk Spaces</h2>
+      <p class="show-desc">Hosted by <a href="https://x.com/Shills_81" target="_blank">Shills™</a> — real conversations about AI, agents, and building in public. No slides. No lecture. Just "what's your problem, let's solve it together."</p>
+      <div class="hero-pull" style="margin:0">"Art and tech have always been the same thing for her. She learned it from her grandmother, who was coding on a dome computer at Honeywell back in the eighties."</div>
+      <p class="show-desc">Join live every <strong style="color:#f1f5f9">Tuesday at 5pm CT</strong> — <a href="https://x.com/Shills_81" target="_blank">follow @Shills_81 on X</a> to catch it.</p>
+      <div class="hero-host" style="margin-top:2px;">
+        <span class="hero-host-label">Co-hosted with</span>
+        <a href="https://x.com/KingDankKush" target="_blank" class="hero-host-link">@KingDankKush</a>
+        <span class="hero-host-label">&</span>
+        <a href="https://x.com/PiffsPeak" target="_blank" class="hero-host-link">@PiffsPeak</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE CARD -->
+  <div class="hero-card">
+    <div class="hero-image-wrap">
+      <img src="hero-article.jpg" alt="Nobody is Teaching This" class="hero-img"
+           onerror="this.parentElement.classList.add('hero-image-fallback')">
+      <div class="hero-image-overlay"></div>
+      <a class="hero-source" href="https://x.com/pyra_m1d/status/2045176716616974694" target="_blank">
+        Featured on X &nbsp;·&nbsp; @pyra_m1d &nbsp;·&nbsp; Apr 17, 2026
+      </a>
+    </div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">As Featured In</div>
+      <h2 class="hero-title">"Nobody is Teaching This..... Yet"</h2>
+      <div class="hero-pulls">
+        <div class="hero-pull">"She runs 36 agents. Not hypothetically. In production."</div>
+        <div class="hero-pull">"She didn't lead with the 36 agents. She led with the gap."</div>
+        <div class="hero-pull">"Light bulbs just start going off when you break the barriers down."</div>
+      </div>
+      <div class="hero-meta">
+        <a href="https://x.com/Shills_81" target="_blank" class="hero-tag hero-tag-link">Shills™</a>
+        <a href="https://wewayassessment.com" target="_blank" class="hero-tag hero-tag-link">WE Way Labs™</a>
+        <a href="https://substack.com/@shills81" target="_blank" class="hero-tag hero-tag-link">Substack</a>
+        <a href="https://wewayassessment.com" target="_blank" class="hero-tag hero-tag-link">wewayassessment.com</a>
+        <span class="hero-tag hero-tag-promo">🏷 FAMFIRST</span>
+      </div>
+      <div class="hero-host">
+        <span class="hero-host-label">Article written by</span>
+        <a href="https://x.com/pyra_m1d" target="_blank" class="hero-host-link">@pyra_m1d</a>
+        <span class="hero-host-label">· from Tuesday's AI Talk Spaces</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <a class="hero-cta" href="https://x.com/MicroM43/status/2044825059726971354" target="_blank">🎙 Listen to the Latest →</a>
+        <a class="hero-cta-secondary" href="https://x.com/pyra_m1d/status/2045176716616974694" target="_blank">Read the Full Article →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORY STATS -->
+  <div class="story-stats">
+    <div class="story-stat">
+      <div class="story-stat-val">30</div>
+      <div class="story-stat-label">Years in Tech</div>
+    </div>
+    <div class="story-stat">
+      <div class="story-stat-val">36</div>
+      <div class="story-stat-label">AI Agents in Production</div>
+    </div>
+    <div class="story-stat">
+      <div class="story-stat-val">200+</div>
+      <div class="story-stat-label">People at Weekly Office Hours</div>
+    </div>
+    <div class="story-stat">
+      <div class="story-stat-val">57</div>
+      <div class="story-stat-label">Free Prompts in This Library</div>
+    </div>
+  </div>
+
+  <div class="section-title">Community Leaderboard</div>
+  <div class="panel">
+    <div class="badge-legend">
+      <div class="badge-pill"><span class="icon">🏆</span> Prompt Pro — starred + forked</div>
+      <div class="badge-pill"><span class="icon">🔀</span> Prompt Builder — forked</div>
+      <div class="badge-pill"><span class="icon">⭐</span> Prompt Curious — starred</div>
+    </div>
+    <div class="leaderboard" id="leaderboard"></div>
+  </div>
+
+  <div class="section-title">Analytics</div>
+  <div class="stat-grid" id="stat-grid">
+    <div class="loading-state"><span class="spinner"></span>Loading...</div>
+  </div>
+
+  <div class="four-col" style="margin-top:14px;">
+    <div class="panel">
+      <h3>Views <span style="font-size:10px;color:#475569;font-weight:400">· 14 days</span></h3>
+      <div class="traffic-panel" id="views-panel"></div>
+    </div>
+    <div class="panel">
+      <h3>Clones <span style="font-size:10px;color:#475569;font-weight:400">· 14 days</span></h3>
+      <div class="traffic-panel" id="clones-panel"></div>
+    </div>
+    <div class="panel">
+      <h3>Top Paths</h3>
+      <div id="top-paths"></div>
+    </div>
+    <div class="panel">
+      <h3>Top Referrers</h3>
+      <div id="top-referrers"></div>
+    </div>
   </div>
 </div>
 
-<div class="main">
-  <div class="shell-error" id="error-box"></div>
-  <div class="shell-loading" id="loading"><div class="shell-spinner"></div> Loading traffic data…</div>
-
-  <div id="dashboard" style="display:none">
-
-    <!-- Big summary banner -->
-    <div class="summary-banner">
-      <div class="big-num" id="banner-views">—</div>
-      <div class="big-label">Total views since tracking began</div>
-      <div class="meta-row">
-        <div class="summary-meta"><div class="val" id="banner-uniques">—</div><div class="lbl">Unique Visitors</div></div>
-        <div class="summary-meta"><div class="val" id="banner-clones">—</div><div class="lbl">Repo Clones</div></div>
-        <div class="summary-meta"><div class="val" id="banner-stars">—</div><div class="lbl">Stars</div></div>
-        <div class="summary-meta"><div class="val" id="banner-days">—</div><div class="lbl">Days Tracked</div></div>
-      </div>
-    </div>
-
-    <!-- Stat cards -->
-    <div class="stat-grid" id="stat-grid"></div>
-
-    <!-- Views + Clones over time -->
-    <div class="chart-grid">
-      <div class="panel">
-        <div class="section-title"><span class="dot"></span>Views over time</div>
-        <canvas id="chart-views"></canvas>
-      </div>
-      <div class="panel">
-        <div class="section-title"><span class="dot" style="background:var(--green)"></span>Clones over time</div>
-        <canvas id="chart-clones"></canvas>
-      </div>
-    </div>
-
-    <!-- Most viewed prompts + Referrers -->
-    <div class="chart-grid">
-      <div class="panel">
-        <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Most Viewed Prompts</div>
-        <div class="table-wrap">
-          <table id="table-paths">
-            <thead><tr>
-              <th>Prompt</th>
-              <th style="text-align:right">Views</th>
-              <th style="text-align:right">Unique</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Top Referrers</div>
-        <div class="table-wrap">
-          <table id="table-refs">
-            <thead><tr>
-              <th>Source</th>
-              <th style="text-align:right">Views</th>
-              <th style="text-align:right">Unique</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stars / Forks growth -->
-    <div class="panel">
-      <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Stars &amp; Forks over time</div>
-      <canvas id="chart-stars" style="max-height:150px"></canvas>
-    </div>
-
-  </div><!-- /dashboard -->
-</div><!-- /main -->
-
-<footer>
-  Data via GitHub Traffic API · Updated daily by GitHub Actions ·
-  <a href="https://github.com/shills81/Shills-helpful-prompts" target="_blank">github.com/shills81/Shills-helpful-prompts</a>
-</footer>
-
 <script>
-const DATA_URL =
-  "https://raw.githubusercontent.com/shills81/Shills-helpful-prompts/traffic-data/data/traffic-log.json";
+const OWNER = 'shills81';
+const REPO  = 'Shills-helpful-prompts';
+const API   = 'https://api.github.com';
 
-const C = {
-  purple: "#8b5cf6", purple2: "#a78bfa",
-  green:  "#22c55e", green2:  "#10b981",
-  gold:   "#fbbf24", orange:  "#f59e0b",
-  blue:   "#3b82f6", blue2:   "#06b6d4",
-  muted:  "#94a3b8", border:  "#1e293b",
-};
+function getToken() { return localStorage.getItem('gh_token_prompt_lib'); }
 
-const CHART_OPT = {
-  responsive: true,
-  maintainAspectRatio: true,
-  plugins: { legend: { labels: { color: C.muted, font: { size: 11 } } } },
-  scales: {
-    x: { ticks: { color: C.muted, font: { size: 10 } }, grid: { color: C.border } },
-    y: { ticks: { color: C.muted, font: { size: 10 } }, grid: { color: C.border }, beginAtZero: true },
-  },
-};
+function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) return;
+  localStorage.setItem('gh_token_prompt_lib', t);
+  init();
+}
 
-function fmt(n) { return (n ?? 0).toLocaleString(); }
+function clearToken() {
+  localStorage.removeItem('gh_token_prompt_lib');
+  document.getElementById('token-gate').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('refresh-btn').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('token-input').value = '';
+}
 
-function lineChart(id, labels, datasets, opts = {}) {
-  new Chart(document.getElementById(id).getContext("2d"), {
-    type: "line",
-    data: { labels, datasets },
-    options: { ...CHART_OPT, ...opts, elements: { point: { radius: 2 }, line: { tension: 0.35 } } },
+async function gh(path) {
+  const res = await fetch(`${API}${path}`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
   });
+  if (!res.ok) throw new Error(`GitHub API error ${res.status}: ${path}`);
+  return res.json();
 }
 
-function pathLabel(p) {
-  return p.replace(/^\/prompts\//, "").replace(/\.md$/, "").replace(/^\//, "") || p;
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
 }
 
-async function render() {
+function hideError() {
+  document.getElementById('error-msg').style.display = 'none';
+}
+
+function renderStatGrid(repo, views, clones, stars, forks) {
+  const uniqueViews   = views.uniques   ?? 0;
+  const totalViews    = views.count     ?? 0;
+  const uniqueClones  = clones.uniques  ?? 0;
+  const totalClones   = clones.count    ?? 0;
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="label">Stars</div>
+      <div class="value yellow">${repo.stargazers_count.toLocaleString()}</div>
+      <div class="sub">All time</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Forks</div>
+      <div class="value blue">${repo.forks_count.toLocaleString()}</div>
+      <div class="sub">All time</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Community Members</div>
+      <div class="value">${new Set([...stars.map(u=>u.login), ...forks.map(u=>u.owner.login)]).size.toLocaleString()}</div>
+      <div class="sub">Unique stars + forks</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Watchers</div>
+      <div class="value">${repo.subscribers_count.toLocaleString()}</div>
+      <div class="sub">All time</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Open Issues</div>
+      <div class="value">${repo.open_issues_count.toLocaleString()}</div>
+      <div class="sub">Currently open</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Unique Visitors</div>
+      <div class="value green">${uniqueViews.toLocaleString()}</div>
+      <div class="sub">${totalViews.toLocaleString()} total views / 14 days</div>
+    </div>
+  `;
+}
+
+function renderTrafficPanel(panelId, data, countKey, uniqueKey, color) {
+  const el = document.getElementById(panelId);
+  const items = data || [];
+  if (items.length === 0) {
+    el.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px 0">No data yet</div>';
+    return;
+  }
+
+  const total   = items.reduce((s, i) => s + i[countKey], 0);
+  const uniques = items.reduce((s, i) => s + i[uniqueKey], 0);
+
+  // Trend: compare first half vs second half
+  const mid  = Math.floor(items.length / 2);
+  const prev = items.slice(0, mid).reduce((s, i) => s + i[countKey], 0);
+  const curr = items.slice(mid).reduce((s, i) => s + i[countKey], 0);
+  const diff = prev === 0 ? 0 : Math.round(((curr - prev) / prev) * 100);
+  const trendClass = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  const trendArrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '—';
+
+  // Sparkline SVG (area chart)
+  const vals = items.map(i => i[countKey]);
+  const max  = Math.max(...vals, 1);
+  const W = 300, H = 48, pad = 2;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v / max) * (H - pad * 2));
+    return `${x},${y}`;
+  });
+  const polyline = pts.join(' ');
+  const areaPath = `M${pts[0]} L${pts.join(' L')} L${pad + (W - pad*2)},${H} L${pad},${H} Z`;
+
+  el.innerHTML = `
+    <div class="traffic-stat">
+      <div class="big">${total.toLocaleString()}</div>
+      <div class="uniq">${uniques.toLocaleString()} unique</div>
+      <div class="trend ${trendClass}">${trendArrow} ${Math.abs(diff)}%</div>
+    </div>
+    <div class="sparkline-wrap">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sg-${panelId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#sg-${panelId})"/>
+        <polyline points="${polyline}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+  `;
+}
+
+function renderPaths(paths) {
+  const el = document.getElementById('top-paths');
+  if (!paths || paths.length === 0) {
+    el.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px 0">No data yet</div>';
+    return;
+  }
+  el.innerHTML = paths.map(p => `
+    <div class="list-row">
+      <div class="name" title="${p.path}">${p.path.replace(`/${OWNER}/${REPO}/`, '')}</div>
+      <div class="count">${p.count.toLocaleString()} <span style="color:#334155">/ ${p.uniques}u</span></div>
+    </div>
+  `).join('');
+}
+
+function renderReferrers(refs) {
+  const el = document.getElementById('top-referrers');
+  if (!refs || refs.length === 0) {
+    el.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px 0">No data yet</div>';
+    return;
+  }
+  el.innerHTML = refs.map(r => `
+    <div class="list-row">
+      <div class="name">${r.referrer}</div>
+      <div class="count">${r.count.toLocaleString()} <span style="color:#334155">/ ${r.uniques}u</span></div>
+    </div>
+  `).join('');
+}
+
+function renderLeaderboard(stars, forks) {
+  const el = document.getElementById('leaderboard');
+  const users = new Map();
+
+  stars.forEach(u => {
+    if (u.login === OWNER) return;
+    users.set(u.login, { login: u.login, avatar: u.avatar_url, starred: true, forked: false });
+  });
+
+  forks.forEach(u => {
+    const login = u.owner.login;
+    if (login === OWNER) return;
+    if (users.has(login)) {
+      users.get(login).forked = true;
+    } else {
+      users.set(login, { login, avatar: u.owner.avatar_url, starred: false, forked: true });
+    }
+  });
+
+  const ranked = [...users.values()].map(u => {
+    const points = (u.starred ? 1 : 0) + (u.forked ? 2 : 0);
+    return { ...u, points };
+  }).sort((a, b) => b.points - a.points);
+
+  const ownerRow = `
+    <div class="lb-row" style="border-color:#2563eb;background:#0d1f38;">
+      <div class="lb-rank" style="color:#3b82f6;">👑</div>
+      <img class="lb-avatar" src="https://github.com/${OWNER}.png" alt="${OWNER}" loading="lazy">
+      <div class="lb-info">
+        <div class="lb-name"><a href="https://github.com/${OWNER}" target="_blank">@${OWNER}</a></div>
+        <div class="lb-badges"><span class="lb-badge pro" style="background:#1e3a5f;border-color:#3b82f6">Repo Owner</span></div>
+      </div>
+      <div class="lb-points" style="color:#3b82f6">Creator</div>
+    </div>
+  `;
+
+  if (ranked.length === 0) {
+    el.innerHTML = ownerRow + '<div style="color:#475569;font-size:13px;padding:16px 0">No community members yet — share the repo!</div>';
+    return;
+  }
+
+  el.innerHTML = ownerRow + ranked.map((u, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const rankLabel = i < 3 ? ['1st','2nd','3rd'][i] : `${i+1}`;
+
+    const badges = [];
+    if (u.starred && u.forked) badges.push('<span class="lb-badge pro">Prompt Pro</span>');
+    else if (u.forked)         badges.push('<span class="lb-badge builder">Prompt Builder</span>');
+    else if (u.starred)        badges.push('<span class="lb-badge curious">Prompt Curious</span>');
+
+    return `
+      <div class="lb-row">
+        <div class="lb-rank ${rankClass}">${rankLabel}</div>
+        <img class="lb-avatar" src="${u.avatar}" alt="${u.login}" loading="lazy">
+        <div class="lb-info">
+          <div class="lb-name"><a href="https://github.com/${u.login}" target="_blank">@${u.login}</a></div>
+          <div class="lb-badges">${badges.join('')}</div>
+        </div>
+        <div class="lb-points"><span>${u.points}</span> pts</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadAll() {
+  hideError();
+  document.getElementById('stat-grid').innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading...</div>';
+
   try {
-    const resp = await fetch(DATA_URL + "?cb=" + Date.now());
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-    const log = await resp.json();
-
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-
-    // ── Daily data ──────────────────────────────────────────────────
-    const dates     = Object.keys(log.views || {}).sort();
-    const shortDates = dates.map(d => d.slice(5));
-    const views     = dates.map(d => (log.views[d]  || {}).count   ?? 0);
-    const uvs       = dates.map(d => (log.views[d]  || {}).uniques ?? 0);
-    const clones    = dates.map(d => (log.clones[d] || {}).count   ?? 0);
-    const ucl       = dates.map(d => (log.clones[d] || {}).uniques ?? 0);
-
-    const totalViews   = views.reduce((a, b) => a + b, 0);
-    const totalUniques = uvs.reduce((a, b) => a + b, 0);
-    const totalClones  = clones.reduce((a, b) => a + b, 0);
-
-    const snaps  = (log.repo_snapshots || []);
-    const latest = snaps[snaps.length - 1] || {};
-
-    // ── Banner ──────────────────────────────────────────────────────
-    document.getElementById("banner-views").textContent   = fmt(totalViews);
-    document.getElementById("banner-uniques").textContent = fmt(totalUniques);
-    document.getElementById("banner-clones").textContent  = fmt(totalClones);
-    document.getElementById("banner-stars").textContent   = fmt(latest.stars);
-    document.getElementById("banner-days").textContent    = dates.length;
-
-    if (dates.length) {
-      document.getElementById("last-updated").textContent =
-        "Last data: " + dates[dates.length - 1] + " · updated daily";
-    }
-
-    // ── Stat cards ──────────────────────────────────────────────────
-    const today7 = dates.slice(-7);
-    const views7  = today7.reduce((a, d) => a + ((log.views[d]  || {}).count   ?? 0), 0);
-    const clones7 = today7.reduce((a, d) => a + ((log.clones[d] || {}).count   ?? 0), 0);
-    const avgDay  = dates.length ? Math.round(totalViews / dates.length) : 0;
-
-    document.getElementById("stat-grid").innerHTML = [
-      statCard("Views (last 7 days)", views7,  "page views",       "purple"),
-      statCard("Clones (last 7 days)",clones7, "repo clones",      "teal"),
-      statCard("Avg views / day",     avgDay,  "all-time average", "gold"),
-      statCard("Stars",   latest.stars   ?? "—", "", "blue"),
-      statCard("Forks",   latest.forks   ?? "—", "", ""),
-      statCard("Watchers",latest.watchers ?? "—", "", ""),
-    ].join("");
-
-    function statCard(label, val, sub, cls) {
-      return `<div class="stat-card ${cls}">
-        <div class="stat-label">${label}</div>
-        <div class="stat-value">${fmt(val)}</div>
-        ${sub ? `<div class="stat-sub">${sub}</div>` : ""}
-      </div>`;
-    }
-
-    // ── Charts ──────────────────────────────────────────────────────
-    lineChart("chart-views", shortDates, [
-      { label: "Views",           data: views, borderColor: C.purple,  backgroundColor: "rgba(139,92,246,.1)", fill: true },
-      { label: "Unique visitors", data: uvs,   borderColor: C.purple2, backgroundColor: "transparent" },
+    const [repo, viewsData, clonesData, paths, refs, stars, forks] = await Promise.all([
+      gh(`/repos/${OWNER}/${REPO}`),
+      gh(`/repos/${OWNER}/${REPO}/traffic/views`),
+      gh(`/repos/${OWNER}/${REPO}/traffic/clones`),
+      gh(`/repos/${OWNER}/${REPO}/traffic/popular/paths`),
+      gh(`/repos/${OWNER}/${REPO}/traffic/popular/referrers`),
+      gh(`/repos/${OWNER}/${REPO}/stargazers?per_page=100`),
+      gh(`/repos/${OWNER}/${REPO}/forks?per_page=100&sort=newest`)
     ]);
 
-    lineChart("chart-clones", shortDates, [
-      { label: "Clones",         data: clones, borderColor: C.green,  backgroundColor: "rgba(34,197,94,.1)", fill: true },
-      { label: "Unique cloners", data: ucl,    borderColor: C.green2, backgroundColor: "transparent" },
-    ]);
+    renderStatGrid(repo, viewsData, clonesData, stars, forks);
+    renderTrafficPanel('views-panel', viewsData.views, 'count', 'uniques', '#3b82f6');
+    renderTrafficPanel('clones-panel', clonesData.clones, 'count', 'uniques', '#22c55e');
+    renderPaths(paths);
+    renderReferrers(refs);
+    renderLeaderboard(stars, forks);
 
-    // ── Most viewed prompts ─────────────────────────────────────────
-    const paths = (log.popular_paths || [])
-      .filter(p => p.path && p.path.includes("/prompts/"))
-      .sort((a, b) => b.count - a.count);
-
-    const maxPv = paths[0]?.count || 1;
-    const pathsTbody = document.querySelector("#table-paths tbody");
-    pathsTbody.innerHTML = paths.length === 0
-      ? `<tr><td colspan="3" style="color:var(--muted);padding-top:12px;font-size:12px">No prompt view data yet — run the Actions workflow to populate.</td></tr>`
-      : paths.slice(0, 10).map(p => `
-          <tr>
-            <td><span class="path-mono">${pathLabel(p.path)}</span></td>
-            <td style="text-align:right">
-              <div class="bar-wrap">
-                <div class="mini-bar" style="width:${Math.round(p.count/maxPv*60)}px"></div>
-                <span class="num-bold">${fmt(p.count)}</span>
-              </div>
-            </td>
-            <td style="text-align:right"><span class="num-muted">${fmt(p.uniques)}</span></td>
-          </tr>`).join("");
-
-    // ── Referrers ───────────────────────────────────────────────────
-    const refs = (log.referrers || []).sort((a, b) => b.count - a.count);
-    const maxRv = refs[0]?.count || 1;
-    const refsTbody = document.querySelector("#table-refs tbody");
-    refsTbody.innerHTML = refs.length === 0
-      ? `<tr><td colspan="3" style="color:var(--muted);padding-top:12px;font-size:12px">No referrer data yet.</td></tr>`
-      : refs.map(r => `
-          <tr>
-            <td>${r.referrer || "Direct / unknown"}</td>
-            <td style="text-align:right">
-              <div class="bar-wrap">
-                <div class="mini-bar green" style="width:${Math.round(r.count/maxRv*60)}px"></div>
-                <span class="num-bold">${fmt(r.count)}</span>
-              </div>
-            </td>
-            <td style="text-align:right"><span class="num-muted">${fmt(r.uniques)}</span></td>
-          </tr>`).join("");
-
-    // ── Stars/Forks chart ───────────────────────────────────────────
-    const snapDates = snaps.map(s => s.date.slice(5));
-    lineChart("chart-stars", snapDates, [
-      { label: "Stars", data: snaps.map(s => s.stars  ?? 0), borderColor: C.gold,   backgroundColor: "rgba(251,191,36,.1)", fill: true, pointRadius: 3 },
-      { label: "Forks", data: snaps.map(s => s.forks  ?? 0), borderColor: C.orange, backgroundColor: "transparent",         pointRadius: 3 },
-    ]);
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
 
   } catch (err) {
-    document.getElementById("loading").style.display = "none";
-    const box = document.getElementById("error-box");
-    box.style.display = "block";
-    box.innerHTML = `<strong>Could not load traffic data.</strong><br>
-      If this is a fresh setup, trigger the <em>Fetch Traffic Stats</em> GitHub Action manually first.<br><br>
-      Error: ${err.message}`;
+    showError(err.message + ' — check your token has repo scope and try refreshing.');
+    document.getElementById('stat-grid').innerHTML = '';
   }
 }
 
-render();
+function init() {
+  const token = getToken();
+  if (!token) {
+    document.getElementById('token-gate').style.display = 'block';
+    document.getElementById('dashboard').style.display = 'none';
+    return;
+  }
+  document.getElementById('token-gate').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('refresh-btn').style.display = 'inline-block';
+  document.getElementById('logout-btn').style.display = 'inline-block';
+  loadAll();
+}
+
+init();
 </script>
 </body>
 </html>

@@ -56,7 +56,7 @@ The project has **zero npm dependencies** — all code is vanilla Node.js using 
 | `child_process.execSync` | Yes — `src/telemetry.js` (multiple) | **REMOVED** — telemetry module deleted entirely |
 | Dynamic `require()` / `import()` | No | Safe |
 | `process.env` reads | Yes — standard env checks | **Legitimate** — checks for standard environment variables |
-| File writes | Yes — `writeFileSync` | **Legitimate** — writes HTML report to user-specified path and history to `~/.we-code-analyzer/` |
+| File writes | Yes — `writeFileSync` | **Legitimate** — writes HTML report to user-specified path and history to `~/.cchubber/` (renamed per fork) |
 
 **Risk: LOW** (all child_process usage in telemetry has been removed)
 
@@ -65,8 +65,8 @@ The project has **zero npm dependencies** — all code is vanilla Node.js using 
 | URL | Purpose | Status |
 |-----|---------|--------|
 | `https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json` | Fetch current model pricing | **KEPT** — legitimate, public GitHub raw file, has hardcoded fallback |
-| `https://cchubber-telemetry.asmirkhan087.workers.dev/collect` | Send anonymous telemetry | **REMOVED** |
-| `https://cchubber-telemetry.asmirkhan087.workers.dev/stats-public` | Fetch community stats | **REMOVED** |
+| `https://cchubber-telemetry.[redacted].workers.dev/collect` | Send anonymous telemetry | **REMOVED** |
+| `https://cchubber-telemetry.[redacted].workers.dev/stats-public` | Fetch community stats | **REMOVED** |
 | `https://cdn.tailwindcss.com` | Tailwind CSS framework (in HTML report) | **KEPT** — standard CDN |
 | `https://fonts.googleapis.com` | Google Fonts (Inter, JetBrains Mono, Material Symbols) | **KEPT** — standard CDN |
 | `https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js` | Screenshot library (in HTML report) | **KEPT** — standard CDN |
@@ -128,7 +128,7 @@ The tool reads the following local directories (all within `~/.claude/`):
 | Community stats removed | Fetch to `/stats-public` endpoint removed from CLI |
 | Rebranded | Package name, CLI commands, help text, HTML report all updated to WE Way Labs |
 | Dashboard reskinned | HTML report colors updated to WHF Blue palette (#3b82f6 primary, dark theme) |
-| History directory changed | `~/.cchubber/` → `~/.we-code-analyzer/` |
+| History directory changed | Renamed to fork-specific local path |
 
 ---
 
