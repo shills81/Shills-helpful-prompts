@@ -1,0 +1,10 @@
+# Disable the default blank issue template and add a redirect notice.
+# This prevents people from opening unsolicited contribution requests.
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue (sensitive data found)
+    url: ../../security/advisories/new
+    about: Report accidentally committed credentials or private information via GitHub's private vulnerability disclosure.
+  - name: Read the library
+    url: ../../tree/main/prompts
+    about: Browse and copy prompts directly — no issue needed.

@@ -1,0 +1,46 @@
+name: Auto-close pull requests
+
+# This repo does not accept contributions.
+# Any PR opened from a fork or external branch is automatically closed
+# with a polite explanation.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write  # needed to post comment and close PR
+
+jobs:
+  close-pr:
+    name: Close unsolicited PR
+    runs-on: ubuntu-latest
+    # Only close PRs from forks (external contributors).
+    # PRs from the owner's own branches (head.repo.full_name == base.repo.full_name
+    # AND sender is the owner) are allowed through.
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - name: Comment and close
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                "Thanks for taking the time to open a PR.",
+                "",
+                "This repository is a personal read-only reference library and does not accept external contributions.",
+                "",
+                "If you'd like to use or adapt these prompts, feel free to fork the repo and maintain your own copy.",
+                "",
+                "Closing this PR automatically."
+              ].join("\n")
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: "closed"
+            });

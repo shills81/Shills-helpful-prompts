@@ -1,0 +1,60 @@
+# Gitleaks configuration for prompt-library
+# Prevents secrets from being committed before they hit GitHub.
+#
+# Usage (manual scan before push):
+#   gitleaks detect --source . --config .gitleaks.toml
+#
+# Install gitleaks: https://github.com/gitleaks/gitleaks#installing
+
+title = "prompt-library secret scan"
+
+[extend]
+# Inherit all default gitleaks rules (API keys, tokens, private keys, etc.)
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic / Claude API key"
+regex = '''sk-ant-[a-zA-Z0-9\-_]{20,}'''
+tags = ["anthropic", "claude", "api-key"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-[a-zA-Z0-9]{20,}'''
+tags = ["openai", "api-key"]
+
+[[rules]]
+id = "netlify-token"
+description = "Netlify personal access token"
+regex = '''netlify[_\-]?token[\s:='"]+[a-zA-Z0-9\-_]{20,}'''
+tags = ["netlify", "token"]
+[rules.allowlist]
+  description = "Allow netlify in prose"
+  regexes = ['''netlify\.app|netlify\.com''']
+
+[[rules]]
+id = "generic-api-key-in-url"
+description = "API key embedded in a URL"
+regex = '''https?://[^\s]*[?&](?:api_?key|token|secret|password)=[^\s&'"]{8,}'''
+tags = ["api-key", "url"]
+
+[allowlist]
+  description = "Global allowlist — known safe patterns"
+  paths = [
+    ".gitleaks.toml",     # this file
+    "LICENSE",
+    "README.md",
+  ]
+  regexes = [
+    # Placeholder values used in prompt templates
+    '''\[YOUR[_\s][A-Z_]+\]''',
+    # Example / dummy keys in documentation
+    '''sk-ant-EXAMPLE''',
+    '''sk-EXAMPLE''',
+    # CDN / standard URLs
+    '''fonts\.googleapis\.com''',
+    '''cdn\.tailwindcss\.com''',
+    '''cdnjs\.cloudflare\.com''',
+    '''raw\.githubusercontent\.com''',
+  ]
