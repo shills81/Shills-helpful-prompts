@@ -59,6 +59,26 @@ Strength: 25 to 35 percent
 
 ---
 
+## NFC Summit Brand Reference
+
+Official palette:
+- Primary Black: #000000 — RGB 0, 0, 0 — CMYK 0%, 0%, 0%, 100% — Pantone Black C
+- Primary White: #FFFFFF — RGB 255, 255, 255 — CMYK 0%, 0%, 0%, 0% — Pantone White
+
+Logo typography:
+- "NFC" — extra-bold, condensed, all-caps, large display weight
+- "NFC SUMMIT" — same weight, condensed, all-caps, set smaller below "NFC"
+- Both versions: black on white and white on black
+- No color variants. No gradients. No decorative elements.
+
+Compositor inputs for NFC Summit:
+- Title line 1: NFC
+- Title line 2: SUMMIT
+- Date / Location: [DATE] — LISBON
+- Header credit: [PRESENTER] × NFC SUMMIT [YEAR]
+
+---
+
 ## Prompt Template
 
 ```
