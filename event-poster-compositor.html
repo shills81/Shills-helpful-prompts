@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Poster Compositor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #ddd;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 60px;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 32px;
+    }
+
+    .workspace {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      flex-shrink: 0;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .drop-zone {
+      border: 1px dashed #333;
+      border-radius: 2px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      color: #555;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #888; color: #aaa; }
+    .drop-zone input { display: none; }
+
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+
+    label { font-size: 12px; color: #555; letter-spacing: 0.15em; text-transform: uppercase; }
+
+    input[type="text"], input[type="range"] {
+      width: 100%;
+      background: #111;
+      border: 1px solid #222;
+      color: #ccc;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #555; }
+
+    input[type="range"] {
+      padding: 4px 0;
+      accent-color: #888;
+    }
+
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    .range-val { font-size: 12px; color: #666; width: 36px; text-align: right; flex-shrink: 0; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle {
+      width: 36px;
+      height: 20px;
+      background: #222;
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: #555; }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #888;
+      border-radius: 50%;
+      transition: left 0.2s, background 0.2s;
+    }
+    .toggle.on::after { left: 19px; background: #ddd; }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #aaa;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .btn:hover { border-color: #888; color: #eee; background: #222; }
+    .btn.primary { border-color: #555; color: #fff; }
+    .btn.primary:hover { background: #2a2a2a; border-color: #aaa; }
+
+    .divider { border: none; border-top: 1px solid #1e1e1e; }
+
+    /* ── Poster preview ── */
+    .poster-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .poster-container {
+      position: relative;
+      width: 420px;
+      height: 747px; /* 9:16 */
+      background: #000;
+      overflow: hidden;
+      border: 1px solid #222;
+    }
+
+    #poster-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: none;
+    }
+
+    .drop-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* Lower band gradient fade */
+    .poster-fade {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 42%;
+      background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.85) 35%, #000 60%);
+      pointer-events: none;
+    }
+
+    /* Top fade for header line */
+    .poster-fade-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 18%;
+      background: linear-gradient(to top, transparent 0%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+    }
+
+    /* ── Text overlays ── */
+    .poster-header {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .poster-text-block {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0 28px 26px;
+      text-align: center;
+    }
+
+    .poster-line1 {
+      font-family: 'Arial Black', 'Impact', sans-serif;
+      font-size: 88px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 0.9;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .poster-line2 {
+      font-family: 'Arial Black', 'Impact', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .poster-divider {
+      width: 40px;
+      height: 1px;
+      background: rgba(255,255,255,0.3);
+      margin: 8px auto;
+    }
+
+    .poster-dates {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.65);
+      text-transform: uppercase;
+    }
+
+    .poster-credit {
+      font-family: 'Courier New', monospace;
+      font-size: 8px;
+      letter-spacing: 0.5em;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* Accent line */
+    .poster-accent {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      height: 1px;
+      background: #F08375;
+      opacity: 0.6;
+    }
+
+    .poster-size-note {
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Event Poster Compositor</h1>
+
+<div class="workspace">
+
+  <!-- Controls -->
+  <div class="controls">
+
+    <div>
+      <div class="section-label">Image</div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*">
+        Drop image here<br>or click to upload
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Event Text</div>
+      <div class="field-group">
+        <label>Title line 1</label>
+        <input type="text" id="line1" placeholder="[LINE 1]">
+      </div>
+      <br>
+      <div class="field-group">
+        <label>Title line 2</label>
+        <input type="text" id="line2" placeholder="[LINE 2]">
+      </div>
+      <br>
+      <div class="field-group">
+        <label>Date / Location</label>
+        <input type="text" id="dates" placeholder="[DATE — LOCATION]">
+      </div>
+      <br>
+      <div class="field-group">
+        <label>Header credit (top)</label>
+        <input type="text" id="header" placeholder="[PRESENTER × EVENT NAME YEAR]">
+      </div>
+      <br>
+      <div class="field-group">
+        <label>Credit (bottom)</label>
+        <input type="text" id="credit" placeholder="[PRESENTER]">
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="section-label">Layout</div>
+      <div class="field-group">
+        <label>Fade height</label>
+        <div class="range-row">
+          <input type="range" id="fade-height" min="20" max="65" value="42">
+          <span class="range-val" id="fade-val">42%</span>
+        </div>
+      </div>
+      <br>
+      <div class="field-group">
+        <label>Image position</label>
+        <div class="range-row">
+          <input type="range" id="img-pos" min="0" max="100" value="0">
+          <span class="range-val" id="pos-val">top</span>
+        </div>
+      </div>
+      <br>
+      <div class="toggle-row">
+        <label>Accent line</label>
+        <div class="toggle on" id="accent-toggle"></div>
+      </div>
+      <br>
+      <div class="toggle-row">
+        <label>Show header</label>
+        <div class="toggle on" id="header-toggle"></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <button class="btn primary" onclick="savePoster()">Save as PNG</button>
+    <button class="btn" onclick="window.print()">Print</button>
+
+  </div>
+
+  <!-- Poster preview -->
+  <div class="poster-wrap">
+    <div class="poster-container" id="poster">
+      <img id="poster-bg" alt="">
+      <div class="drop-hint" id="drop-hint">Drop image to begin</div>
+      <div class="poster-fade-top" id="fade-top"></div>
+      <div class="poster-fade" id="fade-bottom"></div>
+      <div class="poster-header" id="poster-header-text"></div>
+      <div class="poster-accent" id="accent-line" style="bottom: 218px;"></div>
+      <div class="poster-text-block">
+        <div class="poster-line1" id="out-line1"></div>
+        <div class="poster-line2" id="out-line2"></div>
+        <div class="poster-divider"></div>
+        <div class="poster-dates" id="out-dates"></div>
+        <div class="poster-credit" id="poster-credit"></div>
+      </div>
+    </div>
+    <div class="poster-size-note">Preview at 420 × 747px — exports full resolution</div>
+  </div>
+
+</div>
+
+<script>
+  // ── Live text updates ──
+  document.getElementById('line1').addEventListener('input', e => {
+    document.getElementById('out-line1').textContent = e.target.value;
+  });
+  document.getElementById('line2').addEventListener('input', e => {
+    document.getElementById('out-line2').textContent = e.target.value;
+  });
+  document.getElementById('dates').addEventListener('input', e => {
+    document.getElementById('out-dates').textContent = e.target.value;
+  });
+  document.getElementById('header').addEventListener('input', e => {
+    document.getElementById('poster-header-text').textContent = e.target.value;
+  });
+  document.getElementById('credit').addEventListener('input', e => {
+    document.getElementById('poster-credit').textContent = e.target.value;
+  });
+
+  // ── Fade height slider ──
+  document.getElementById('fade-height').addEventListener('input', e => {
+    const v = e.target.value;
+    document.getElementById('fade-val').textContent = v + '%';
+    document.getElementById('fade-bottom').style.height = v + '%';
+  });
+
+  // ── Image position slider ──
+  document.getElementById('img-pos').addEventListener('input', e => {
+    const v = parseInt(e.target.value);
+    document.getElementById('poster-bg').style.objectPosition = 'center ' + v + '%';
+    document.getElementById('pos-val').textContent = v + '%';
+  });
+
+  // ── Accent toggle ──
+  document.getElementById('accent-toggle').addEventListener('click', function() {
+    this.classList.toggle('on');
+    document.getElementById('accent-line').style.display = this.classList.contains('on') ? 'block' : 'none';
+  });
+
+  // ── Header toggle ──
+  document.getElementById('header-toggle').addEventListener('click', function() {
+    this.classList.toggle('on');
+    const el = document.getElementById('poster-header-text');
+    const fade = document.getElementById('fade-top');
+    const show = this.classList.contains('on');
+    el.style.display = show ? 'block' : 'none';
+    fade.style.display = show ? 'block' : 'none';
+  });
+
+  // ── Image loading ──
+  function loadImage(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    const img = document.getElementById('poster-bg');
+    img.src = url;
+    img.style.display = 'block';
+    document.getElementById('drop-hint').style.display = 'none';
+  }
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    loadImage(e.target.files[0]);
+  });
+
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('click', () => document.getElementById('file-input').click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    loadImage(e.dataTransfer.files[0]);
+  });
+
+  // ── Paste from clipboard ──
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        loadImage(item.getAsFile());
+        break;
+      }
+    }
+  });
+
+  // ── Also accept drag onto the poster itself ──
+  const poster = document.getElementById('poster');
+  poster.addEventListener('dragover', e => e.preventDefault());
+  poster.addEventListener('drop', e => {
+    e.preventDefault();
+    loadImage(e.dataTransfer.files[0]);
+  });
+
+  // ── Save as PNG via canvas ──
+  async function savePoster() {
+    const img = document.getElementById('poster-bg');
+    if (!img.src || img.style.display === 'none') {
+      alert('Drop an image first.');
+      return;
+    }
+
+    // Full-res export: 1080 × 1920
+    const W = 1080, H = 1920;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Draw image cover
+    const imgEl = new Image();
+    imgEl.crossOrigin = 'anonymous';
+    imgEl.src = img.src;
+    await new Promise(r => { imgEl.onload = r; imgEl.onerror = r; });
+
+    const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+    const scale = Math.max(W / iw, H / ih);
+    const sw = iw * scale, sh = ih * scale;
+    const sx = (W - sw) / 2, sy = 0;
+    ctx.drawImage(imgEl, sx, sy, sw, sh);
+
+    // Fade gradient bottom
+    const fadeH = parseFloat(document.getElementById('fade-height').value) / 100;
+    const grad = ctx.createLinearGradient(0, H * (1 - fadeH), 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.35, 'rgba(0,0,0,0.85)');
+    grad.addColorStop(0.6, 'rgba(0,0,0,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, H * (1 - fadeH), W, H * fadeH);
+
+    // Fade gradient top
+    if (document.getElementById('header-toggle').classList.contains('on')) {
+      const gradTop = ctx.createLinearGradient(0, 0, 0, H * 0.18);
+      gradTop.addColorStop(0, 'rgba(0,0,0,0.6)');
+      gradTop.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradTop;
+      ctx.fillRect(0, 0, W, H * 0.18);
+
+      // Header text
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '400 28px Courier New';
+      ctx.textAlign = 'center';
+      ctx.letterSpacing = '8px';
+      const headerVal = document.getElementById('header').value;
+      if (headerVal) ctx.fillText(headerVal.toUpperCase(), W / 2, 70);
+    }
+
+    // Accent line
+    if (document.getElementById('accent-toggle').classList.contains('on')) {
+      ctx.strokeStyle = '#F08375';
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(72, H - 560);
+      ctx.lineTo(W - 72, H - 560);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Line 1 large text
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 320px Arial Black, Impact, sans-serif';
+    const line1Val = document.getElementById('line1').value;
+    if (line1Val) ctx.fillText(line1Val.toUpperCase(), W / 2, H - 380);
+
+    // Line 2
+    ctx.font = '900 108px Arial Black, Impact, sans-serif';
+    const line2Val = document.getElementById('line2').value;
+    if (line2Val) ctx.fillText(line2Val.toUpperCase(), W / 2, H - 250);
+
+    // Divider
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 60, H - 210);
+    ctx.lineTo(W / 2 + 60, H - 210);
+    ctx.stroke();
+
+    // Dates
+    ctx.font = '400 38px Helvetica Neue, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    const datesVal = document.getElementById('dates').value;
+    if (datesVal) ctx.fillText(datesVal.toUpperCase(), W / 2, H - 170);
+
+    // Credit
+    ctx.font = '400 24px Courier New';
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    const creditVal = document.getElementById('credit').value;
+    if (creditVal) ctx.fillText(creditVal.toUpperCase(), W / 2, H - 120);
+
+    // Download
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'event-poster.png';
+      a.click();
+    }, 'image/png');
+  }
+</script>
+</body>
+</html>
