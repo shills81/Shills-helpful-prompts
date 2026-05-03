@@ -38,6 +38,7 @@ jobs:
           cd ../traffic-data
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add data/traffic-log.json
           if git diff --staged --quiet; then
             echo "No new data — nothing to commit."
