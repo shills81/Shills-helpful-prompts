@@ -71,11 +71,11 @@ Logo typography:
 - Both versions: black on white and white on black
 - No color variants. No gradients. No decorative elements.
 
-Compositor inputs for NFC Summit:
+Compositor inputs for NFC Summit (top to bottom):
+- Header credit: [PRESENTER] × NFC SUMMIT [YEAR]
 - Title line 1: NFC
 - Title line 2: SUMMIT
 - Date / Location: [DATE] — LISBON
-- Header credit: [PRESENTER] × NFC SUMMIT [YEAR]
 
 ---
 
